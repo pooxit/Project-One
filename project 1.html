@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistem Timer & Billing VIP</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&family=Playfair+Display:ital,wght@0,600;1,600&display=swap');
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            color: #e2e8f0;
+            background-color: #020617;
+            overflow-x: hidden;
+        }
+
+        .font-serif {
+            font-family: 'Playfair Display', serif;
+        }
+
+        /* --- ANIMASI LATAR BELAKANG --- */
+        .animated-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: -1;
+            /* Warna gradasi: Gelap dengan aksen ungu dan biru tua */
+            background: linear-gradient(45deg, #0f172a, #2e1065, #172554, #312e81);
+            background-size: 400% 400%;
+            animation: gradientBG 15s ease infinite;
+        }
+
+        @keyframes gradientBG {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        /* --- GLOW KARTU UTAMA --- */
+        .glass-panel {
+            background: rgba(15, 23, 42, 0.5);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            animation: panelGlow 6s ease-in-out infinite alternate;
+        }
+
+        @keyframes panelGlow {
+            0% { box-shadow: 0 10px 40px -10px rgba(139, 92, 246, 0.3), inset 0 0 0 1px rgba(255,255,255,0.05); }
+            100% { box-shadow: 0 20px 50px -15px rgba(56, 189, 248, 0.3), inset 0 0 0 1px rgba(255,255,255,0.1); }
+        }
+
+        /* Styling Input Angka Modern */
+        input[type="number"]::-webkit-inner-spin-button,
+        input[type="number"]::-webkit-outer-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        input[type="number"] {
+            -moz-appearance: textfield;
+            background: rgba(30, 41, 59, 0.6);
+            box-shadow: inset 0 2px 10px rgba(0,0,0,0.5);
+            transition: all 0.3s ease;
+        }
+        
+        input[type="number"]:focus {
+            background: rgba(51, 65, 85, 0.8);
+            box-shadow: inset 0 2px 15px rgba(0,0,0,0.6), 0 0 20px rgba(139, 92, 246, 0.4);
+            border-color: #8b5cf6;
+        }
+
+        /* Radio Button Kustom untuk Pemilihan Paket */
+        .radio-label {
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .radio-input:checked + .radio-label {
+            background: linear-gradient(135deg, #6d28d9, #4c1d95);
+            border-color: #a78bfa;
+            box-shadow: 0 0 20px rgba(139, 92, 246, 0.5);
+            transform: scale(1.05);
+        }
+        .radio-input:checked + .radio-label .text-content {
+            color: white;
+        }
+
+        /* Teks Gradasi */
+        .gradient-text-primary {
+            background: linear-gradient(to right, #a78bfa, #38bdf8, #a78bfa);
+            background-size: 200% auto;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: textShine 3s linear infinite;
+        }
+
+        @keyframes textShine {
+            to { background-position: 200% center; }
+        }
+
+        /* Tombol Animasi */
+        .btn-animated {
+            background: linear-gradient(90deg, #6d28d9, #3b82f6, #6d28d9);
+            background-size: 200% auto;
+            transition: 0.5s;
+        }
+        .btn-animated:hover:not(:disabled) {
+            background-position: right center;
+            box-shadow: 0 0 20px rgba(139, 92, 246, 0.6);
+        }
+
+        /* Efek Berdering */
+        @keyframes alarmGlow {
+            0% { background-color: rgba(220, 38, 38, 0.85); box-shadow: inset 0 0 100px rgba(0,0,0,0.5); }
+            50% { background-color: rgba(153, 27, 27, 0.95); box-shadow: inset 0 0 50px rgba(0,0,0,0.8); }
+            100% { background-color: rgba(220, 38, 38, 0.85); box-shadow: inset 0 0 100px rgba(0,0,0,0.5); }
+        }
+        .bg-alarm-active {
+            animation: alarmGlow 1s infinite alternate;
+        }
+    </style>
+</head>
+<body class="h-screen w-screen flex flex-col items-center justify-center selection:bg-purple-600 selection:text-white">
+
+    <div class="animated-bg"></div>
+
+    <!-- Header Waktu -->
+    <div class="absolute top-6 w-full text-center z-10">
+        <p class="text-slate-400/80 text-xs font-semibold tracking-widest uppercase mb-1">Jam Saat Ini</p>
+        <div class="bg-black/40 backdrop-blur-md px-5 py-1.5 rounded-full inline-block border border-white/5">
+            <h2 id="liveClock" class="text-xl font-light tracking-widest text-slate-200">00:00:00</h2>
+        </div>
+    </div>
+
+    <!-- Kartu Utama -->
+    <div class="glass-panel p-8 md:p-10 rounded-[2rem] flex flex-col items-center w-[92%] max-w-lg relative z-10 transition-all duration-500 mt-4">
+        
+        <!-- --- TAMPILAN PENGATURAN --- -->
+        <div id="setupView" class="w-full flex flex-col items-center">
+            <h1 class="text-3xl md:text-4xl font-serif gradient-text-primary mb-2 text-center font-bold">Billing Sesi</h1>
+            <p class="text-sm text-slate-400 mb-8 text-center font-light">Pilih paket dan tentukan durasi sewa.</p>
+            
+            <!-- Pilihan Paket (VIP / Reguler) -->
+            <div class="flex gap-4 w-full mb-8">
+                <!-- Opsi Reguler -->
+                <div class="w-1/2">
+                    <input type="radio" id="paketReguler" name="paketSewa" value="5000" class="radio-input hidden" checked>
+                    <label for="paketReguler" class="radio-label block w-full bg-slate-800/60 border border-slate-600 rounded-2xl p-4 text-center h-full">
+                        <span class="text-content block text-lg font-semibold text-slate-300 mb-1 transition-colors">Reguler</span>
+                        <span class="text-content block text-xs text-slate-400 transition-colors">Rp 5.000 / Jam</span>
+                    </label>
+                </div>
+                <!-- Opsi VIP -->
+                <div class="w-1/2">
+                    <input type="radio" id="paketVip" name="paketSewa" value="10000" class="radio-input hidden">
+                    <label for="paketVip" class="radio-label block w-full bg-slate-800/60 border border-slate-600 rounded-2xl p-4 text-center h-full relative overflow-hidden">
+                        <!-- Badge VIP -->
+                        <div class="absolute -right-6 top-2 bg-yellow-500 text-black text-[10px] font-bold py-0.5 px-8 rotate-45">HOT</div>
+                        <span class="text-content block text-lg font-semibold text-slate-300 mb-1 transition-colors">VIP</span>
+                        <span class="text-content block text-xs text-slate-400 transition-colors">Rp 10.000 / Jam</span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Input Waktu -->
+            <div class="flex items-center justify-center gap-4 mb-6">
+                <!-- Jam -->
+                <div class="flex flex-col items-center group">
+                    <input type="number" id="hourInp" min="0" max="24" placeholder="0" 
+                        class="w-24 h-28 text-5xl text-center text-white rounded-2xl border border-slate-600/50 outline-none font-light shadow-xl">
+                    <span class="text-[11px] font-medium text-slate-400 mt-3 tracking-widest uppercase">Jam</span>
+                </div>
+                
+                <span class="text-3xl text-slate-500 font-light mb-8 animate-pulse">:</span>
+                
+                <!-- Menit -->
+                <div class="flex flex-col items-center group">
+                    <input type="number" id="minInp" min="0" max="59" placeholder="0" 
+                        class="w-24 h-28 text-5xl text-center text-white rounded-2xl border border-slate-600/50 outline-none font-light shadow-xl">
+                    <span class="text-[11px] font-medium text-slate-400 mt-3 tracking-widest uppercase">Menit</span>
+                </div>
+            </div>
+
+            <!-- Info Real-time (Harga & ETA) -->
+            <div class="w-full bg-slate-900/60 border border-slate-700/50 rounded-xl p-4 mb-8 min-h-[80px] flex flex-col justify-center gap-1 shadow-inner">
+                <div class="flex justify-between items-center text-sm border-b border-slate-700/50 pb-2 mb-2">
+                    <span class="text-slate-400">Estimasi Selesai:</span>
+                    <span id="etaText" class="font-semibold text-purple-300">--:--</span>
+                </div>
+                <div class="flex justify-between items-center">
+                    <span class="text-slate-400 text-sm">Total Biaya:</span>
+                    <span id="priceText" class="font-bold text-xl text-emerald-400">Rp 0</span>
+                </div>
+            </div>
+
+            <!-- Tombol Mulai -->
+            <button id="startBtn" disabled class="w-full btn-animated disabled:bg-none disabled:bg-slate-800 disabled:text-slate-500 disabled:cursor-not-allowed border border-purple-500/30 text-white font-semibold py-4 rounded-xl transform active:scale-95 transition-all text-lg tracking-wide">
+                Mulai Sesi
+            </button>
+        </div>
+
+        <!-- --- TAMPILAN HITUNG MUNDUR --- -->
+        <div id="countdownView" class="w-full hidden flex-col items-center py-2">
+            <div class="flex items-center gap-2 mb-6 bg-black/30 px-4 py-1.5 rounded-full border border-white/5">
+                <span class="relative flex h-2.5 w-2.5">
+                  <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-purple-400 opacity-75"></span>
+                  <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-purple-500"></span>
+                </span>
+                <h2 id="activePackageText" class="text-xs font-semibold text-purple-400 uppercase tracking-widest">Sesi Aktif</h2>
+            </div>
+            
+            <div id="countdownDisplay" class="text-6xl md:text-7xl font-light tracking-tight text-white mb-8 text-center tabular-nums font-serif drop-shadow-xl">
+                00:00:00
+            </div>
+            
+            <div class="w-full grid grid-cols-2 gap-4 mb-10 text-center">
+                <div class="bg-black/40 border border-white/5 rounded-xl py-3 shadow-inner">
+                    <p class="text-[10px] text-slate-400 uppercase tracking-wider mb-1">Selesai Pukul</p>
+                    <p id="targetTimeDisplay" class="text-lg font-semibold text-slate-200">--:--</p>
+                </div>
+                <div class="bg-black/40 border border-white/5 rounded-xl py-3 shadow-inner">
+                    <p class="text-[10px] text-slate-400 uppercase tracking-wider mb-1">Total Tagihan</p>
+                    <p id="activePriceDisplay" class="text-lg font-bold text-emerald-400">Rp 0</p>
+                </div>
+            </div>
+
+            <button id="cancelBtn" class="w-full bg-transparent hover:bg-white/10 border border-slate-600 text-slate-300 font-medium py-3 rounded-xl transition-all duration-300">
+                Hentikan & Selesaikan
+            </button>
+        </div>
+    </div>
+
+    <!-- Overlay Waktu Habis -->
+    <div id="alarmOverlay" class="fixed inset-0 z-50 hidden flex-col items-center justify-center bg-alarm-active backdrop-blur-xl transition-opacity duration-300 opacity-0">
+        
+        <div class="bg-white/10 p-6 rounded-full mb-6 backdrop-blur-md border border-white/20 animate-bounce">
+            <svg class="w-16 h-16 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+        </div>
+        
+        <h2 class="text-4xl md:text-6xl font-serif text-white mb-2 tracking-wider text-center drop-shadow-2xl font-bold">
+            WAKTU HABIS
+        </h2>
+        <p class="text-red-100 text-lg mb-8 font-light">Sesi sewa telah selesai.</p>
+
+        <div class="bg-black/50 border border-red-500/30 rounded-2xl p-6 mb-12 text-center min-w-[250px]">
+            <p class="text-sm text-red-200 uppercase tracking-widest mb-1">Tagihan Akhir</p>
+            <p id="finalPriceDisplay" class="text-3xl font-bold text-emerald-400">Rp 0</p>
+        </div>
+        
+        <button id="stopBtn" class="bg-white text-red-800 hover:bg-slate-200 font-bold text-lg py-4 px-10 rounded-xl shadow-[0_10px_30px_rgba(0,0,0,0.5)] transition-transform active:scale-95 tracking-wide">
+            Tutup & Matikan Alarm
+        </button>
+    </div>
+
+    <script>
+        // --- Variables ---[cite: 4]
+        let audioCtx = null;
+        let beepInterval = null;
+        let countdownInterval = null;
+        let targetTimestamp = null;
+        let finalCalculatedPrice = 0;
+
+        // --- DOM Elements ---[cite: 4]
+        const liveClockEl = document.getElementById('liveClock');
+        const hourInp = document.getElementById('hourInp');
+        const minInp = document.getElementById('minInp');
+        const etaText = document.getElementById('etaText');
+        const priceText = document.getElementById('priceText');
+        const startBtn = document.getElementById('startBtn');
+        const radioInputs = document.querySelectorAll('input[name="paketSewa"]');
+        
+        const setupView = document.getElementById('setupView');
+        const countdownView = document.getElementById('countdownView');
+        const countdownDisplay = document.getElementById('countdownDisplay');
+        const targetTimeDisplay = document.getElementById('targetTimeDisplay');
+        const activePriceDisplay = document.getElementById('activePriceDisplay');
+        const activePackageText = document.getElementById('activePackageText');
+        const cancelBtn = document.getElementById('cancelBtn');
+        
+        const overlay = document.getElementById('alarmOverlay');
+        const finalPriceDisplay = document.getElementById('finalPriceDisplay');
+        const stopBtn = document.getElementById('stopBtn');
+
+        const padZero = (num) => String(num).padStart(2, '0'); //[cite: 4]
+
+        // --- Live Clock ---[cite: 4]
+        function updateLiveClock() {
+            const now = new Date();
+            liveClockEl.textContent = `${padZero(now.getHours())}:${padZero(now.getMinutes())}:${padZero(now.getSeconds())}`;
+        }
+        setInterval(updateLiveClock, 1000);
+        updateLiveClock();
+
+        // --- Format Rupiah ---
+        function formatRupiah(angka) {
+            return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(angka);
+        }
+
+        // --- Kalkulasi Harga dan ETA Real-time ---
+        function calculateInfo() {
+            let h = parseInt(hourInp.value) || 0;
+            let m = parseInt(minInp.value) || 0;
+            
+            // Cek paket terpilih
+            let selectedPricePerHour = 0;
+            radioInputs.forEach(radio => {
+                if(radio.checked) selectedPricePerHour = parseInt(radio.value);
+            });
+
+            if (h === 0 && m === 0) {
+                etaText.textContent = "--:--";
+                priceText.textContent = "Rp 0";
+                startBtn.disabled = true;
+                return;
+            }
+
+            // Hitung ETA
+            let now = new Date();
+            now.setHours(now.getHours() + h);
+            now.setMinutes(now.getMinutes() + m);
+            etaText.innerHTML = `${padZero(now.getHours())}:${padZero(now.getMinutes())}`;
+
+            // Hitung Harga (Berdasarkan proporsi jam, misal 30 menit = 0.5 jam)
+            let totalHours = h + (m / 60);
+            finalCalculatedPrice = Math.round(totalHours * selectedPricePerHour);
+            priceText.textContent = formatRupiah(finalCalculatedPrice);
+            
+            startBtn.disabled = false;
+        }
+
+        // --- Event Listeners Input & Radio ---
+        [hourInp, minInp].forEach(input => {
+            input.addEventListener('input', function() {
+                if(this.value.length > 2) this.value = this.value.slice(0, 2);
+                let val = parseInt(this.value);
+                let max = parseInt(this.getAttribute('max'));
+                if(val > max) this.value = max;
+                if(val < 0) this.value = 0;
+                calculateInfo();
+            });
+            input.addEventListener('blur', function() {
+                if(this.value !== "" && parseInt(this.value) < 10) {
+                    this.value = parseInt(this.value); // Hilangkan 0 di depan saat edit selesai, opsional
+                }
+            });
+        });
+
+        radioInputs.forEach(radio => {
+            radio.addEventListener('change', calculateInfo);
+        });
+
+        // --- Mulai Timer ---[cite: 4]
+        startBtn.addEventListener('click', () => {
+            let h = parseInt(hourInp.value) || 0;
+            let m = parseInt(minInp.value) || 0;
+
+            targetTimestamp = Date.now() + (h * 3600000) + (m * 60000);
+            
+            let targetDate = new Date(targetTimestamp);
+            targetTimeDisplay.textContent = `${padZero(targetDate.getHours())}:${padZero(targetDate.getMinutes())}`;
+            
+            // Set Info Sesi Aktif
+            activePriceDisplay.textContent = formatRupiah(finalCalculatedPrice);
+            let isVip = document.getElementById('paketVip').checked;
+            activePackageText.textContent = isVip ? 'Sesi VIP Aktif' : 'Sesi Reguler Aktif';
+
+            // Ganti UI
+            setupView.classList.add('hidden');
+            countdownView.classList.remove('hidden');
+            countdownView.classList.add('flex');
+
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+
+            updateCountdown(); 
+            countdownInterval = setInterval(updateCountdown, 100); 
+        });
+
+        // --- Hitung Mundur ---[cite: 4]
+        function updateCountdown() {
+            let remainingMs = targetTimestamp - Date.now();
+
+            if (remainingMs <= 0) {
+                clearInterval(countdownInterval);
+                countdownDisplay.textContent = "00:00:00";
+                triggerAlarm();
+                return;
+            }
+
+            let totalSeconds = Math.floor(remainingMs / 1000);
+            let hours = Math.floor(totalSeconds / 3600);
+            let minutes = Math.floor((totalSeconds % 3600) / 60);
+            let seconds = totalSeconds % 60;
+
+            countdownDisplay.textContent = `${padZero(hours)}:${padZero(minutes)}:${padZero(seconds)}`;
+        }
+
+        // --- Batalkan/Selesaikan ---[cite: 4]
+        cancelBtn.addEventListener('click', resetApp);
+
+        function resetApp() {
+            clearInterval(countdownInterval);
+            clearInterval(beepInterval);
+            
+            countdownView.classList.add('hidden');
+            countdownView.classList.remove('flex');
+            setupView.classList.remove('hidden');
+            
+            hourInp.value = '';
+            minInp.value = '';
+            calculateInfo(); 
+        }
+
+        // --- Alarm Bunyi ---[cite: 4]
+        function triggerAlarm() {
+            finalPriceDisplay.textContent = formatRupiah(finalCalculatedPrice);
+            
+            overlay.classList.remove('hidden');
+            overlay.classList.add('flex');
+            setTimeout(() => overlay.classList.remove('opacity-0'), 50);
+
+            playBeep();
+            beepInterval = setInterval(() => {
+                playBeep();
+                setTimeout(playBeep, 150); 
+            }, 800);
+        }
+
+        // --- Suara ---[cite: 4]
+        function playBeep() {
+            if(!audioCtx) return;
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            
+            const oscillator = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            
+            oscillator.type = 'square'; // Suara peringatan khas billing
+            oscillator.frequency.setValueAtTime(800, audioCtx.currentTime); 
+            
+            gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
+            gainNode.gain.linearRampToValueAtTime(0.2, audioCtx.currentTime + 0.05);
+            gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.3);
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            
+            oscillator.start();
+            oscillator.stop(audioCtx.currentTime + 0.3);
+        }
+
+        // --- Matikan Alarm ---[cite: 4]
+        stopBtn.addEventListener('click', () => {
+            overlay.classList.add('opacity-0');
+            setTimeout(() => {
+                overlay.classList.add('hidden');
+                overlay.classList.remove('flex');
+                resetApp(); 
+            }, 300);
+        });
+    </script>
+</body>
+</html>
